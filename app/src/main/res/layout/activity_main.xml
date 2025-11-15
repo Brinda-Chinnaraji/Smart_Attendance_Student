@@ -39,7 +39,7 @@
             android:gravity="center_horizontal"
             android:paddingTop="16dp">
 
-            <!-- Scanning Status Card -->
+            <!-- Scanning Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -88,6 +88,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 android:backgroundTint="@android:color/white">
@@ -106,19 +107,134 @@
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:layout_marginBottom="8dp" />
-
-                    <Button
-                        android:id="@+id/btnLogAttendance"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Log Attendance"
-                        android:textAllCaps="false"
-                        android:enabled="false"
-                        android:backgroundTint="@color/teal_700"
-                        android:textColor="@android:color/white" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Face Verification Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFaceVerification"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                android:visibility="gone"
+                android:backgroundTint="@android:color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center_horizontal">
+
+                    <TextView
+                        android:id="@+id/tvFaceTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Face verification"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvFaceHint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Align your face inside the circle to verify."
+                        android:textSize="14sp"
+                        android:textColor="@android:color/darker_gray"
+                        android:layout_marginBottom="16dp" />
+
+                    <FrameLayout
+                        android:id="@+id/facePreviewContainer"
+                        android:layout_width="220dp"
+                        android:layout_height="220dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/face_circle_border"
+                        android:clipToOutline="true">
+
+                        <androidx.camera.view.PreviewView
+                            android:id="@+id/previewFace"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvFaceStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Waiting for course enrollment..."
+                        android:textSize="14sp"
+                        android:textColor="@android:color/darker_gray" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Log Attendance button (separate) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogAttendance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Log Attendance"
+                android:textAllCaps="false"
+                android:enabled="false"
+                app:cornerRadius="20dp"
+                app:backgroundTint="@color/teal_700"
+                android:textColor="@android:color/white" />
+
         </LinearLayout>
     </ScrollView>
+
+    <!-- Smooth system-requirements overlay -->
+    <FrameLayout
+        android:id="@+id/overlayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/overlayCard"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/overlay_card_bg"
+            android:padding="24dp"
+            android:layout_gravity="bottom"
+            android:elevation="10dp">
+
+            <TextView
+                android:id="@+id/overlayTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Action Required"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:textSize="20sp"
+                android:layout_marginBottom="10dp"/>
+
+            <TextView
+                android:id="@+id/overlayMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Please enable Bluetooth and Location services."
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:layout_marginBottom="20dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Open Settings"
+                android:textAllCaps="false"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/teal_700"
+                android:textColor="@android:color/white"/>
+
+        </LinearLayout>
+    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

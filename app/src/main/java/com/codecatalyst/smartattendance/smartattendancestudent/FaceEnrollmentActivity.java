@@ -5,13 +5,18 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.graphics.drawable.AnimationDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
@@ -33,9 +38,12 @@ import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class FaceEnrollmentActivity extends AppCompatActivity {
 
@@ -44,10 +52,18 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
     private PreviewView previewView;
     private Button btnCapture;
+    private View faceBorderOverlay;
 
-    private ImageCapture imageCapture;
     private FaceDetector faceDetector;
     private FaceNetModel faceNetModel;
+    private ExecutorService cameraExecutor;
+
+    private boolean faceAligned = false;
+    private AnimationDrawable redGlowAnim;
+    private AnimationDrawable greenGlowAnim;
+    private AnimationDrawable currentAnim;
+
+    private Bitmap lastDetectedFaceBitmap = null; // ✅ store last valid frame
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,17 +72,23 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
         previewView = findViewById(R.id.previewView);
         btnCapture = findViewById(R.id.btnCapture);
+        faceBorderOverlay = findViewById(R.id.faceBorderOverlay);
 
-        // Init FaceNet model
+        faceBorderOverlay.setBackgroundResource(R.drawable.anim_red_glow);
+        redGlowAnim = (AnimationDrawable) faceBorderOverlay.getBackground();
+        redGlowAnim.start();
+        currentAnim = redGlowAnim;
+
         faceNetModel = new FaceNetModel(this);
 
-        // ML Kit face detector
         FaceDetectorOptions options = new FaceDetectorOptions.Builder()
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                 .build();
-        faceDetector = FaceDetection.getClient(options);
 
-        // Permissions
+        faceDetector = FaceDetection.getClient(options);
+        cameraExecutor = Executors.newSingleThreadExecutor();
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -90,18 +112,22 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
                 Preview preview = new Preview.Builder().build();
-                imageCapture = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+
+                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build();
+
+                imageAnalysis.setAnalyzer(cameraExecutor, this::analyzeFrame);
 
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
 
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
                 cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+                cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, imageAnalysis);
 
-                Log.d(TAG, "✅ Camera started");
+                Log.d(TAG, "✅ Camera started with live analysis.");
 
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "❌ Camera init error: " + e.getMessage());
@@ -109,67 +135,125 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
         }, ContextCompat.getMainExecutor(this));
     }
 
-    private void captureFace() {
-        if (imageCapture == null) return;
-
-        imageCapture.takePicture(
-                ContextCompat.getMainExecutor(this),
-                new ImageCapture.OnImageCapturedCallback() {
-                    @Override
-                    public void onCaptureSuccess(@NonNull ImageProxy imageProxy) {
-                        Bitmap bitmap = imageProxyToBitmap(imageProxy);
-                        if (bitmap == null) {
-                            imageProxy.close();
-                            Toast.makeText(FaceEnrollmentActivity.this,
-                                    "Capture failed", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        InputImage img = InputImage.fromBitmap(bitmap, 0);
-                        faceDetector.process(img)
-                                .addOnSuccessListener(faces -> handleFaces(bitmap, faces))
-                                .addOnFailureListener(e ->
-                                        Log.e(TAG, "Face detection failed: " + e.getMessage()))
-                                .addOnCompleteListener(t -> imageProxy.close());
-                    }
-
-                    @Override
-                    public void onError(@NonNull ImageCaptureException exc) {
-                        Log.e(TAG, "Image capture failed: " + exc.getMessage());
-                    }
-                });
-    }
-
-    private void handleFaces(Bitmap original, List<Face> faces) {
-        if (faces == null || faces.isEmpty()) {
-            Toast.makeText(this, "No face detected. Try again.", Toast.LENGTH_SHORT).show();
+    @OptIn(markerClass = ExperimentalGetImage.class)
+    private void analyzeFrame(@NonNull ImageProxy imageProxy) {
+        android.media.Image mediaImage = imageProxy.getImage();
+        if (mediaImage == null) {
+            imageProxy.close();
             return;
         }
 
-        Face face = faces.get(0);
-        Rect bounds = face.getBoundingBox();
-        Bitmap cropped = cropFace(original, bounds);
+        InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+        faceDetector.process(image)
+                .addOnSuccessListener(faces -> {
+                    if (faces != null && !faces.isEmpty()) {
+                        Face face = faces.get(0);
+                        Rect bounds = face.getBoundingBox();
 
-        // Preprocess + get embedding
-        float[] input = BitmapPreprocessor.preprocess(cropped);
+                        Bitmap frameBitmap = imageProxyToBitmap(imageProxy);
+                        if (frameBitmap == null) {
+                            lastDetectedFaceBitmap = null;
+                            return;
+                        }
+                        Bitmap mirrored = mirrorBitmap(frameBitmap); // ✅ mirror front camera
+                        Bitmap cropped = cropFace(mirrored, bounds);
+
+                        lastDetectedFaceBitmap = cropped; // ✅ store valid frame
+
+                        if (!faceAligned) runOnUiThread(this::showGreenGlow);
+                        faceAligned = true;
+                    } else {
+                        if (faceAligned) runOnUiThread(this::showRedGlow);
+                        faceAligned = false;
+                        lastDetectedFaceBitmap = null;
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Face detection error: " + e.getMessage()))
+                .addOnCompleteListener(t -> imageProxy.close());
+    }
+
+    private void showRedGlow() {
+        if (currentAnim == redGlowAnim) return;
+        faceBorderOverlay.setBackgroundResource(R.drawable.anim_red_glow);
+        redGlowAnim = (AnimationDrawable) faceBorderOverlay.getBackground();
+        redGlowAnim.start();
+        currentAnim = redGlowAnim;
+    }
+
+    private void showGreenGlow() {
+        if (currentAnim == greenGlowAnim) return;
+        faceBorderOverlay.setBackgroundResource(R.drawable.anim_green_glow);
+        greenGlowAnim = (AnimationDrawable) faceBorderOverlay.getBackground();
+        greenGlowAnim.start();
+        currentAnim = greenGlowAnim;
+    }
+
+    private void captureFace() {
+        if (lastDetectedFaceBitmap == null) {
+            Toast.makeText(this, "Align your face properly (green glow) before capturing.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // ✅ directly use the last valid frame
+        float[] input = BitmapPreprocessor.preprocess(lastDetectedFaceBitmap);
         float[] embedding = faceNetModel.getEmbedding(input);
 
-        // Save embedding locally
         FaceStorage.saveEmbedding(this, embedding);
         Toast.makeText(this, "✅ Face registered successfully!", Toast.LENGTH_LONG).show();
+
         Intent intent = new Intent(FaceEnrollmentActivity.this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
     }
 
-    // Very simple Y plane to bitmap conversion (works enough for ML Kit)
+    @OptIn(markerClass = ExperimentalGetImage.class)
     private Bitmap imageProxyToBitmap(ImageProxy imageProxy) {
-        ImageProxy.PlaneProxy plane = imageProxy.getPlanes()[0];
-        ByteBuffer buffer = plane.getBuffer();
-        byte[] bytes = new byte[buffer.remaining()];
-        buffer.get(bytes);
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        @ExperimentalGetImage
+        android.media.Image image = imageProxy.getImage();
+
+        if (image == null) return null;
+
+        int width = imageProxy.getWidth();
+        int height = imageProxy.getHeight();
+
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+
+        byte[] y = new byte[yBuffer.remaining()];
+        byte[] u = new byte[uBuffer.remaining()];
+        byte[] v = new byte[vBuffer.remaining()];
+
+        yBuffer.get(y);
+        uBuffer.get(u);
+        vBuffer.get(v);
+
+        // NV21 format for ML Kit compatibility
+        byte[] nv21 = new byte[y.length + u.length + v.length];
+
+        // Copy Y
+        System.arraycopy(y, 0, nv21, 0, y.length);
+
+        // Copy VU (swap order)
+        for (int i = 0; i < u.length; i += 2) {
+            nv21[y.length + i] = v[i];
+            nv21[y.length + i + 1] = u[i];
+        }
+
+        YuvImage yuvImage = new YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        yuvImage.compressToJpeg(new Rect(0, 0, width, height), 90, out);
+        byte[] jpegBytes = out.toByteArray();
+
+        return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
+    }
+
+
+    private Bitmap mirrorBitmap(Bitmap original) {
+        Matrix matrix = new Matrix();
+        matrix.preScale(-1.0f, 1.0f);
+        return Bitmap.createBitmap(original, 0, 0, original.getWidth(), original.getHeight(), matrix, true);
     }
 
     private Bitmap cropFace(Bitmap src, Rect rect) {
@@ -198,5 +282,11 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
                 Toast.makeText(this, "Camera permission required", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cameraExecutor != null) cameraExecutor.shutdown();
     }
 }

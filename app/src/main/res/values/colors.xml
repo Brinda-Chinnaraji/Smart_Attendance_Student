@@ -7,4 +7,15 @@
     <color name="teal_700">#018786</color> <!-- ✅ add this line -->
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+    <color name="login_neon_red">#FF335D</color>
+    <color name="login_neon_blue">#38BDF8</color>
+    <color name="login_subtitle">#9CA3AF</color>
+    <color name="login_field_bg">#1F2933</color>
+    <color name="uncc_dark">#001A14</color>
+    <color name="uncc_green">#0AFA96</color>
+    <color name="uncc_green_dim">#0ACF78</color>
+    <color name="text_light">#E7FDF7</color>
+    <color name="card_dark">#8000241B</color>
+    <color name="input_dark">#003228</color>
+
 </resources>

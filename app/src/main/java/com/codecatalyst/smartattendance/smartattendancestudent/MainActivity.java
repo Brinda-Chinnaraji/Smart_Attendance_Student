@@ -31,6 +31,8 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -96,15 +98,15 @@ public class MainActivity extends AppCompatActivity {
     // UI
     private TextView tvScanStatus, tvDetectedUUID, tvCourseInfo;
     private ProgressBar progressBar;
-    private MaterialButton btnLogAttendance;
+    private Button btnLogAttendance;
 
     // Overlay
     private View overlayContainer;
     private TextView overlayMessage;
-    private MaterialButton btnOpenSettings;
+    private Button btnOpenSettings;
 
     // Face verification UI
-    private MaterialCardView cardFaceVerification;
+    private LinearLayout cardFaceVerification;
     private PreviewView previewFace;
     private View facePreviewContainer;
     private TextView tvFaceStatus;
@@ -139,6 +141,14 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        ImageView btnHistory = findViewById(R.id.btnHistory);
+        btnHistory.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, AttendanceHistoryActivity.class);
+            intent.putExtra("STUDENT_ID", studentId);
+            startActivity(intent);
+        });
+
 
         db = FirebaseFirestore.getInstance();
 

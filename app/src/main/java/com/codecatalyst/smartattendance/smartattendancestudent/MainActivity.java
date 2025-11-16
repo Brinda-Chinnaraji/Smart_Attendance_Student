@@ -371,7 +371,6 @@ public class MainActivity extends AppCompatActivity {
     // ---------------------------------------------------------
     private void checkActiveSessionInFirestore(String scannedUuid) {
         if (sessionResolved) return;
-
         db.collectionGroup("Attendance")
                 .get()
                 .addOnSuccessListener(qs -> {
@@ -385,8 +384,8 @@ public class MainActivity extends AppCompatActivity {
                             Map<String, Object> session = (Map<String, Object>) e.getValue();
                             String storedUUID = (String) session.get("SessionUUID");
                             String status = (String) session.get("Status");
-
-                            if ("Active".equals(status)) {
+                            Log.d("DBUUID", "UUID = " + storedUUID);
+                            if ("Active".equals(status) && storedUUID.equals(scannedUuid)) {
                                 activeSessionUUID = storedUUID;
 
                                 DocumentReference adc = doc.getReference();

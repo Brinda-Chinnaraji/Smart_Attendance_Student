@@ -1,131 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:app="http://schemas.android.com/apk/res-auto"
-xmlns:tools="http://schemas.android.com/tools"
-android:id="@+id/main"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:background="#F9F9F9"
-tools:context=".SignupActivity">
-
-<!-- App Bar -->
-<com.google.android.material.appbar.AppBarLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/topAppBar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:backgroundTint="@color/teal_700"
-        app:title="Smart Attendance (Student)"
-        app:titleCentered="true"
-        app:titleTextColor="@android:color/white" />
-</com.google.android.material.appbar.AppBarLayout>
-
-
-<!-- Scrollable Login Content -->
-<ScrollView
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    android:padding="20dp">
+    android:background="@drawable/bg_gradient"
+    android:padding="24dp"
+    tools:context=".SignupActivity">
 
+    <!-- Page Title -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Create Account"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="60dp" />
+
+    <!-- SIGNUP CARD -->
     <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="60dp"
-        android:gravity="center_horizontal">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="8dp"
-            android:backgroundTint="@android:color/white">
-
-    <LinearLayout
+        android:id="@+id/signupCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@id/tvTitle"
+        android:layout_marginTop="40dp"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:background="@drawable/rounded_card">
 
-        <!-- Email input -->
+        <!-- Email Spinner -->
         <Spinner
             android:id="@+id/spinnerEmail"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
+            android:padding="10dp"
             android:layout_marginBottom="16dp"
             android:spinnerMode="dropdown" />
 
         <!-- First Name -->
-           <EditText
-              android:id="@+id/etFirstName"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:hint="First Name"
-               android:focusable="false"
-               android:clickable="false"
-               android:longClickable="false"
-              android:layout_marginBottom="12dp" />
-
-        <!-- Last Name -->
         <EditText
-            android:id="@+id/etLastName"
+            android:id="@+id/etFirstName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Last Name"
+            android:layout_height="50dp"
+            android:padding="12dp"
+            android:hint="First Name"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/darker_gray"
             android:focusable="false"
             android:clickable="false"
             android:longClickable="false"
             android:layout_marginBottom="12dp" />
 
+        <!-- Last Name -->
+        <EditText
+            android:id="@+id/etLastName"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:padding="12dp"
+            android:hint="Last Name"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/darker_gray"
+            android:focusable="false"
+            android:clickable="false"
+            android:longClickable="false"
+            android:layout_marginBottom="12dp" />
 
-        <!-- Password input -->
+        <!-- Password -->
         <EditText
             android:id="@+id/etCurrentPassword"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
+            android:padding="12dp"
             android:hint="Password"
             android:inputType="textPassword"
-            android:autofillHints="Set password"
-            android:layout_marginBottom="12dp" />
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/darker_gray"
+            android:layout_marginBottom="16dp" />
 
-        <!-- Course dropdown -->
+        <!-- Course Spinner -->
         <Spinner
             android:id="@+id/spinnerCourse"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_height="50dp"
+            android:padding="10dp"
+            android:layout_marginBottom="24dp"
             android:spinnerMode="dropdown" />
 
-        <!-- Signup button -->
+        <!-- Sign Up Button -->
         <Button
             android:id="@+id/btnSignup"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="Sign Up"
             android:enabled="false"
-            android:backgroundTint="@color/teal_700"
-            android:textColor="@android:color/white"
-            android:layout_marginTop="24dp"
+            android:background="@drawable/btn_green"
+            android:textColor="@android:color/black"
             android:layout_marginBottom="12dp" />
 
+        <!-- Back Button -->
         <Button
             android:id="@+id/btnBack"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="Back"
             android:padding="8dp"
-            android:backgroundTint="@color/teal_700"
-            android:textColor="@android:color/white"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"/>
+            android:background="@drawable/btn_outline"
+            android:textColor="@color/uncc_green"
+            android:layout_marginBottom="12dp" />
 
         <!-- Progress bar -->
         <ProgressBar
@@ -136,10 +120,5 @@ tools:context=".SignupActivity">
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp" />
     </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
-    </LinearLayout>
-</ScrollView>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
-
+</RelativeLayout>

@@ -4,7 +4,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient"
+    android:background="@drawable/bg"
     android:padding="24dp"
     tools:context=".SignupActivity">
 
@@ -37,6 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:padding="10dp"
+            android:popupBackground="@color/white"
             android:layout_marginBottom="16dp"
             android:spinnerMode="dropdown" />
 
@@ -86,6 +87,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:padding="10dp"
+            android:popupBackground="@color/white"
             android:layout_marginBottom="24dp"
             android:spinnerMode="dropdown" />
 
@@ -107,8 +109,8 @@
             android:layout_height="48dp"
             android:text="Back"
             android:padding="8dp"
-            android:background="@drawable/btn_outline"
-            android:textColor="@color/uncc_green"
+            android:background="@color/card_dark"
+            android:textColor="@color/white"
             android:layout_marginBottom="12dp" />
 
         <!-- Progress bar -->

@@ -74,6 +74,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,16 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "StudentBLE";
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1002;
     private static final int REQUEST_CAMERA_PERMISSION = 2003;
+
+    // --- Face verification temporal logic ---
+    private static final int TEMPORAL_WINDOW_MS = 3000;   // 3 seconds
+    private static final int TOP_N = 15;                  // take lowest 15 distances
+
+
+    private final ArrayList<Float> temporalDistances = new ArrayList<>();
+    private long temporalStartTime = 0;
+    private boolean temporalCollecting = false;
+
 
     // ✅ Stricter threshold for FaceNet distance
     private static final float FACE_MATCH_THRESHOLD = 0.65f;
@@ -109,14 +120,17 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout cardFaceVerification;
     private PreviewView previewFace;
     private View facePreviewContainer;
-    private TextView tvFaceStatus;
+    private TextView tvFaceStatus,tvFaceHint;
 
     // Face verification engine
     private ExecutorService faceCameraExecutor;
     private ProcessCameraProvider faceCameraProvider;
     private FaceDetector faceDetector;
     private FaceNetModel faceNetModel;
-    private float[] storedEmbedding;
+
+    // ✅ Multiple stored embeddings now
+    private float[][] storedEmbeddings;
+
     private boolean isAnalyzingFrame = false;
 
     // Data
@@ -149,7 +163,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-
         db = FirebaseFirestore.getInstance();
 
         // ---- Base UI ----
@@ -171,7 +184,9 @@ public class MainActivity extends AppCompatActivity {
         previewFace = findViewById(R.id.previewFace);
         facePreviewContainer = findViewById(R.id.facePreviewContainer);
         tvFaceStatus = findViewById(R.id.tvFaceStatus);
+        tvFaceHint =  findViewById(R.id.tvFaceHint);
         cardFaceVerification.setVisibility(View.GONE);
+        tvDetectedUUID.setVisibility(View.GONE);
 
         // Student ID
         Intent intent = getIntent();
@@ -182,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.d(TAG, "MainActivity started with studentId = " + studentId);
 
-        // Face embedding must exist (already enrolled)
+        // Face embeddings must exist (already enrolled)
         if (!FaceStorage.hasEmbedding(this)) {
             Intent enrollIntent = new Intent(this, FaceEnrollmentActivity.class);
             enrollIntent.putExtra("STUDENT_ID", studentId);
@@ -190,9 +205,18 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
-        storedEmbedding = FaceStorage.loadEmbedding(this);
-        Log.d(TAG, "Stored embedding length = " +
-                (storedEmbedding != null ? storedEmbedding.length : -1));
+        storedEmbeddings = FaceStorage.loadEmbeddings(this);
+        if (storedEmbeddings == null || storedEmbeddings.length == 0) {
+            Log.e(TAG, "No stored embeddings found even though hasEmbedding = true");
+            Intent enrollIntent = new Intent(this, FaceEnrollmentActivity.class);
+            enrollIntent.putExtra("STUDENT_ID", studentId);
+            startActivity(enrollIntent);
+            finish();
+            return;
+        }
+        Log.d(TAG, "Loaded " + storedEmbeddings.length +
+                " stored embeddings, each dim ≈ " +
+                (storedEmbeddings[0] != null ? storedEmbeddings[0].length : -1));
 
         // Init face detection & FaceNet
         FaceDetectorOptions fdOptions = new FaceDetectorOptions.Builder()
@@ -212,9 +236,7 @@ public class MainActivity extends AppCompatActivity {
         btnLogAttendance.setOnClickListener(v -> logAttendance());
     }
 
-    // ---------------------------------------------------------
-    // SYSTEM REQUIREMENT CHECKS (Bluetooth + Location)
-    // ---------------------------------------------------------
+    // -------------- System requirements (BT + Location) --------------
     private void checkSystemRequirements() {
         boolean btOn = isBluetoothEnabled();
         boolean locOn = isLocationEnabled();
@@ -262,9 +284,7 @@ public class MainActivity extends AppCompatActivity {
         checkSystemRequirements();
     }
 
-    // ---------------------------------------------------------
-    // BLUETOOTH PERMISSIONS
-    // ---------------------------------------------------------
+    // -------------- Bluetooth permissions --------------
     private void checkBluetoothPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(this,
@@ -314,9 +334,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ---------------------------------------------------------
-    // BLE SCANNING
-    // ---------------------------------------------------------
+    // -------------- BLE scanning --------------
     private void startBLEScan() {
         if (!isBluetoothEnabled() || !isLocationEnabled()) return;
 
@@ -326,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
         tvScanStatus.setText("Scanning for nearby sessions...");
         progressBar.setVisibility(View.VISIBLE);
         tvDetectedUUID.setText("");
-  btnLogAttendance.setEnabled(false);
+        btnLogAttendance.setEnabled(false);
         sessionResolved = false;
         activeSessionUUID = null;
 
@@ -366,9 +384,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ---------------------------------------------------------
-    // CHECK ACTIVE SESSION IN FIRESTORE
-    // ---------------------------------------------------------
+    // -------------- Check active session in Firestore --------------
     private void checkActiveSessionInFirestore(String scannedUuid) {
         if (sessionResolved) return;
         db.collectionGroup("Attendance")
@@ -394,6 +410,7 @@ public class MainActivity extends AppCompatActivity {
                                         .getParent().getParent().getId();
 
                                 sessionResolved = true;
+                                Log.d("DBUUID", "UUID_Matched = " + storedUUID);
                                 stopBLEScan();
                                 tvScanStatus.setText("Session detected ✔");
 
@@ -407,9 +424,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "Firestore error: " + e.getMessage()));
     }
 
-    // ---------------------------------------------------------
-    // VERIFY STUDENT ENROLLMENT
-    // ---------------------------------------------------------
+    // -------------- Verify student enrollment --------------
     private void verifyStudentEnrollment(String courseId, String scheduleId) {
         db.collection("Courses")
                 .document(courseId)
@@ -442,11 +457,9 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // ---------------------------------------------------------
-    // FACE VERIFICATION FLOW
-    // ---------------------------------------------------------
+    // -------------- Face verification flow --------------
     private void startFaceVerificationFlow() {
-        if (storedEmbedding == null) {
+        if (storedEmbeddings == null || storedEmbeddings.length == 0) {
             tvFaceStatus.setText("No stored face data. Please re-enroll.");
             return;
         }
@@ -506,7 +519,9 @@ public class MainActivity extends AppCompatActivity {
     @OptIn(markerClass = ExperimentalGetImage.class)
     private void analyzeFaceFrame(@NonNull ImageProxy imageProxy) {
 
-        if (isAnalyzingFrame || storedEmbedding == null) {
+        if (isAnalyzingFrame ||
+                storedEmbeddings == null ||
+                storedEmbeddings.length == 0) {
             imageProxy.close();
             return;
         }
@@ -525,14 +540,14 @@ public class MainActivity extends AppCompatActivity {
 
         faceDetector.process(img)
                 .addOnSuccessListener(faces -> {
+
                     if (faces == null || faces.isEmpty()) {
                         runOnUiThread(() ->
-                                tvFaceStatus.setText("No face detected. Hold still..."));
+                                tvFaceStatus.setText("No face detected. Hold still for 3 seconds..."));
                     } else {
 
                         Face face = faces.get(0);
 
-                        // Convert frame correctly (NV21 → JPEG → Bitmap)
                         Bitmap frameBitmap = imageProxyToBitmap(imageProxy);
                         if (frameBitmap == null) {
                             isAnalyzingFrame = false;
@@ -540,25 +555,73 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
 
-                        // ✅ Mirror the camera frame (just like enrollment)
                         Bitmap mirrored = mirrorBitmap(frameBitmap);
-
-                        // Crop same way as enrollment
                         Bitmap cropped = cropFace(mirrored, face.getBoundingBox());
 
-                        // Preprocess & embed
                         float[] input = BitmapPreprocessor.preprocess(cropped);
                         float[] currentEmbedding = faceNetModel.getEmbedding(input);
 
-                        float dist = l2Distance(storedEmbedding, currentEmbedding);
+                        // ---- FIND BEST DISTANCE AGAINST ALL STORED EMBEDDINGS ----
+                        float bestDist = Float.MAX_VALUE;
+                        for (float[] ref : storedEmbeddings) {
+                            if (ref == null) continue;
+                            float d = l2Distance(ref, currentEmbedding);
+                            if (d < bestDist) bestDist = d;
+                        }
 
-                        Log.d(TAG, "Face distance (verification) = " + dist);
+                        Log.d(TAG, "Frame best-dist = " + bestDist);
 
-                        if (dist < FACE_MATCH_THRESHOLD) {
+                        // -------------------------------
+                        // 🔥 TEMPORAL 3-SECOND SMOOTHING
+                        // -------------------------------
+
+                        if (!temporalCollecting) {
+                            temporalCollecting = true;
+                            temporalStartTime = System.currentTimeMillis();
+                            temporalDistances.clear();
+
+                            runOnUiThread(() ->
+                                    tvFaceStatus.setText("Analyzing face… Hold still (3 sec)"));
+                        }
+
+                        // Add distance
+                        temporalDistances.add(bestDist);
+
+                        // Wait for 3 seconds
+                        long elapsed = System.currentTimeMillis() - temporalStartTime;
+                        if (elapsed < TEMPORAL_WINDOW_MS) {
+                            isAnalyzingFrame = false;
+                            imageProxy.close();
+                            return;
+                        }
+
+                        // 3 seconds finished
+                        temporalCollecting = false;
+
+                        if (temporalDistances.isEmpty()) {
+                            runOnUiThread(() -> tvFaceStatus.setText("No valid face frames."));
+                            isAnalyzingFrame = false;
+                            imageProxy.close();
+                            return;
+                        }
+
+                        // Sort & take lowest TOP_N
+                        java.util.Collections.sort(temporalDistances);
+                        int limit = Math.min(TOP_N, temporalDistances.size());
+
+                        float sum = 0f;
+                        for (int i = 0; i < limit; i++) sum += temporalDistances.get(i);
+
+                        float avgBest = sum / limit;
+
+                        Log.d(TAG, "Avg of best " + limit + " distances = " + avgBest);
+
+                        // FINAL DECISION
+                        if (avgBest < FACE_MATCH_THRESHOLD) {
                             onFaceVerified();
                         } else {
                             runOnUiThread(() ->
-                                    tvFaceStatus.setText("Face not matched. Try again."));
+                                    tvFaceStatus.setText("Face did not match. Try again."));
                         }
                     }
                 })
@@ -570,14 +633,15 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+
     private void onFaceVerified() {
         if (faceVerified) return;
         faceVerified = true;
 
         runOnUiThread(() -> {
             tvFaceStatus.setText("Face verified ✔");
-            // Hide camera circle, keep the card as confirmation
             facePreviewContainer.setVisibility(View.GONE);
+            tvFaceHint.setVisibility(View.GONE);
             stopFaceVerificationCamera();
             updateLogAttendanceButton();
         });
@@ -612,10 +676,8 @@ public class MainActivity extends AppCompatActivity {
 
         byte[] nv21 = new byte[y.length + u.length + v.length];
 
-        // Copy Y
         System.arraycopy(y, 0, nv21, 0, y.length);
 
-        // Copy VU (swap order)
         for (int i = 0; i < u.length; i += 2) {
             nv21[y.length + i] = v[i];
             nv21[y.length + i + 1] = u[i];
@@ -662,9 +724,7 @@ public class MainActivity extends AppCompatActivity {
         return (float) Math.sqrt(sum);
     }
 
-    // ---------------------------------------------------------
-    // LOG ATTENDANCE
-    // ---------------------------------------------------------
+    // -------------- Log attendance --------------
     private void logAttendance() {
         if (activeSessionUUID == null ||
                 courseIdMatched == null ||
@@ -696,7 +756,6 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "Failed to log attendance: " + e.getMessage()));
     }
 
-    // ---------------------------------------------------------
     @Override
     protected void onDestroy() {
         super.onDestroy();

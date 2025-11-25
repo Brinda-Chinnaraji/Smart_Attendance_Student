@@ -17,12 +17,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -42,6 +41,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +51,9 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
     private static final String TAG = "FaceEnroll";
     private static final int CAMERA_PERMISSION_CODE = 1001;
+
+    // ✅ Configurable number of images to capture
+    public static final int NUM_IMAGES_REQUIRED = 5;
 
     private PreviewView previewView;
     private Button btnCapture;
@@ -65,7 +68,10 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
     private AnimationDrawable greenGlowAnim;
     private AnimationDrawable currentAnim;
 
-    private Bitmap lastDetectedFaceBitmap = null; // ✅ store last valid frame
+    private Bitmap lastDetectedFaceBitmap = null; // store last valid frame
+
+    // Store multiple embeddings
+    private final List<float[]> capturedEmbeddings = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +97,12 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
         faceDetector = FaceDetection.getClient(options);
         cameraExecutor = Executors.newSingleThreadExecutor();
 
+        // Initial button text with remaining count
+        updateCaptureButtonText();
+
+        // Show instruction dialog once
+        showEnrollmentInstructions();
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -103,6 +115,27 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
         }
 
         btnCapture.setOnClickListener(v -> captureFace());
+    }
+
+    private void showEnrollmentInstructions() {
+        new AlertDialog.Builder(this)
+                .setTitle("Face Enrollment")
+                .setMessage(
+                        "For better accuracy, we will capture "
+                                + NUM_IMAGES_REQUIRED
+                                + " images of your face.\n\n" +
+                                "Align your face inside the circle until it turns green, " +
+                                "then press the Capture button. Repeat until all images are captured."
+                )
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void updateCaptureButtonText() {
+        int captured = capturedEmbeddings.size();
+        int remaining = NUM_IMAGES_REQUIRED - captured;
+        if (remaining < 0) remaining = 0;
+        btnCapture.setText("Capture (" + remaining + " left)");
     }
 
     private void startCamera() {
@@ -145,7 +178,11 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
             return;
         }
 
-        InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+        InputImage image = InputImage.fromMediaImage(
+                mediaImage,
+                imageProxy.getImageInfo().getRotationDegrees()
+        );
+
         faceDetector.process(image)
                 .addOnSuccessListener(faces -> {
                     if (faces != null && !faces.isEmpty()) {
@@ -157,10 +194,10 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
                             lastDetectedFaceBitmap = null;
                             return;
                         }
-                        Bitmap mirrored = mirrorBitmap(frameBitmap); // ✅ mirror front camera
+                        Bitmap mirrored = mirrorBitmap(frameBitmap); // mirror front camera
                         Bitmap cropped = cropFace(mirrored, bounds);
 
-                        lastDetectedFaceBitmap = cropped; // ✅ store valid frame
+                        lastDetectedFaceBitmap = cropped; // store valid frame
 
                         if (!faceAligned) runOnUiThread(this::showGreenGlow);
                         faceAligned = true;
@@ -170,7 +207,8 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
                         lastDetectedFaceBitmap = null;
                     }
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Face detection error: " + e.getMessage()))
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "Face detection error: " + e.getMessage()))
                 .addOnCompleteListener(t -> imageProxy.close());
     }
 
@@ -192,26 +230,57 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
     private void captureFace() {
         if (lastDetectedFaceBitmap == null) {
-            Toast.makeText(this, "Align your face properly (green glow) before capturing.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Align your face properly (green glow) before capturing.",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // ✅ directly use the last valid frame
+        if (capturedEmbeddings.size() >= NUM_IMAGES_REQUIRED) {
+            // Just in case user taps extra
+            Toast.makeText(this,
+                    "Already captured all required images.",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Use the last valid frame to compute embedding
         float[] input = BitmapPreprocessor.preprocess(lastDetectedFaceBitmap);
         float[] embedding = faceNetModel.getEmbedding(input);
 
-        FaceStorage.saveEmbedding(this, embedding);
-        Toast.makeText(this, "✅ Face registered successfully!", Toast.LENGTH_LONG).show();
+        capturedEmbeddings.add(embedding);
 
-        Intent intent = new Intent(FaceEnrollmentActivity.this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
+        int captured = capturedEmbeddings.size();
+        int remaining = NUM_IMAGES_REQUIRED - captured;
+
+        if (remaining > 0) {
+            Toast.makeText(
+                    this,
+                    "Captured " + captured + " of " + NUM_IMAGES_REQUIRED,
+                    Toast.LENGTH_SHORT
+            ).show();
+            updateCaptureButtonText();
+        } else {
+            // All images captured – save them
+            float[][] allEmbeddings = new float[capturedEmbeddings.size()][];
+            for (int i = 0; i < capturedEmbeddings.size(); i++) {
+                allEmbeddings[i] = capturedEmbeddings.get(i);
+            }
+
+            FaceStorage.saveEmbeddings(this, allEmbeddings);
+            Toast.makeText(this,
+                    "✅ Face registered successfully!",
+                    Toast.LENGTH_LONG).show();
+
+            Intent intent = new Intent(FaceEnrollmentActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        }
     }
 
     @OptIn(markerClass = ExperimentalGetImage.class)
     private Bitmap imageProxyToBitmap(ImageProxy imageProxy) {
-        @ExperimentalGetImage
         android.media.Image image = imageProxy.getImage();
 
         if (image == null) return null;
@@ -243,7 +312,13 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
             nv21[y.length + i + 1] = u[i];
         }
 
-        YuvImage yuvImage = new YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null);
+        YuvImage yuvImage = new YuvImage(
+                nv21,
+                android.graphics.ImageFormat.NV21,
+                width,
+                height,
+                null
+        );
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         yuvImage.compressToJpeg(new Rect(0, 0, width, height), 90, out);
         byte[] jpegBytes = out.toByteArray();
@@ -251,11 +326,17 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
         return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
     }
 
-
     private Bitmap mirrorBitmap(Bitmap original) {
         Matrix matrix = new Matrix();
         matrix.preScale(-1.0f, 1.0f);
-        return Bitmap.createBitmap(original, 0, 0, original.getWidth(), original.getHeight(), matrix, true);
+        return Bitmap.createBitmap(
+                original,
+                0, 0,
+                original.getWidth(),
+                original.getHeight(),
+                matrix,
+                true
+        );
     }
 
     private Bitmap cropFace(Bitmap src, Rect rect) {
@@ -281,7 +362,9 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
                     grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
             } else {
-                Toast.makeText(this, "Camera permission required", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,
+                        "Camera permission required",
+                        Toast.LENGTH_SHORT).show();
             }
         }
     }

@@ -16,7 +16,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Smart Attendance"
-        android:textColor="@android:color/white"
+        android:textColor="@color/text_light"
         android:textSize="26sp"
         android:textStyle="bold"
         android:layout_marginTop="40dp"
@@ -35,7 +35,7 @@
         android:contentDescription="History"
         android:clickable="true"
         android:focusable="true"
-        app:tint="@android:color/white" />
+        app:tint="@color/text_light" />
 
 
     <!-- CONTENT SCROLL -->
@@ -63,7 +63,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
 
-                android:background="@drawable/rounded_card"
+                android:background="@drawable/btn_green"
                 android:padding="24dp"
                 android:layout_marginBottom="20dp">
 
@@ -79,7 +79,7 @@
                         android:layout_height="wrap_content"
                         android:text="Scanning for nearby sessions…"
                         android:textSize="18sp"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/text_light"
                         android:textStyle="bold"
                         android:layout_marginBottom="12dp"/>
 
@@ -95,7 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Detected UUIDs will appear here…"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/text_light"
                         android:textSize="14sp"/>
                 </LinearLayout>
 
@@ -106,7 +106,7 @@
                 android:id="@+id/cardCourseInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/rounded_card"
+                android:background="@drawable/btn_green"
                 android:padding="24dp"
                 android:layout_marginBottom="20dp">
 
@@ -116,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:text="No active session detected yet"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/text_light"
                     android:textSize="16sp"/>
             </LinearLayout>
 
@@ -127,7 +127,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="24dp"
-                android:background="@drawable/rounded_card"
+                android:background="@drawable/btn_green"
                 android:gravity="center_horizontal"
                 android:layout_marginBottom="20dp"
                 android:visibility="gone">
@@ -137,7 +137,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Face Verification"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/text_light"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="6dp"/>
@@ -147,7 +147,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Align your face inside the circle to verify."
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/text_light"
                     android:textSize="14sp"
                     android:layout_marginBottom="16dp"/>
 
@@ -171,7 +171,7 @@
                     android:layout_height="wrap_content"
                     android:text="Waiting for course enrollment…"
                     android:textSize="14sp"
-                    android:textColor="@android:color/white"/>
+                    android:textColor="@color/text_light"/>
             </LinearLayout>
 
             <!-- 4️⃣ LOG ATTENDANCE BUTTON -->
@@ -182,7 +182,7 @@
                 android:text="Log Attendance"
                 android:textAllCaps="false"
                 android:background="@drawable/btn_green"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_light"
                 android:enabled="false"/>
         </LinearLayout>
     </ScrollView>
@@ -192,7 +192,7 @@
         android:id="@+id/overlayContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000"
+        android:background="#004D40"
         android:visibility="gone">
 
         <LinearLayout
@@ -200,7 +200,7 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/rounded_card"
+            android:background="@drawable/btn_green"
             android:padding="24dp"
             android:layout_gravity="bottom">
 
@@ -209,7 +209,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Action Required"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_light"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
@@ -219,7 +219,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Please enable Bluetooth and Location services."
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_light"
                 android:textSize="16sp"
                 android:layout_marginBottom="20dp"/>
 
@@ -229,7 +229,7 @@
                 android:layout_height="48dp"
                 android:text="Open Settings"
                 android:background="@drawable/btn_green"
-                android:textColor="@android:color/black"
+                android:textColor="@color/text_light"
                 android:textAllCaps="false"/>
         </LinearLayout>
     </FrameLayout>

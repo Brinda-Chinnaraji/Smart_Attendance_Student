@@ -69,6 +69,7 @@
                 <Spinner
                     android:id="@+id/spSemester"
                     android:layout_width="match_parent"
+                    android:popupBackground="@drawable/spinner_dark_green"
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
@@ -95,7 +96,8 @@
                 <Spinner
                     android:id="@+id/spCourse"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:popupBackground="@drawable/spinner_dark_green"/>
             </LinearLayout>
 
             <!-- History card (hidden until course chosen) -->
@@ -114,6 +116,7 @@
                     android:layout_height="wrap_content"
                     android:text="Attendance Records"
                     android:textColor="@color/text_light"
+
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />

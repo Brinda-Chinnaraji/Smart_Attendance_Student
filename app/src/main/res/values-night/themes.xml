@@ -3,6 +3,10 @@
     <style name="Base.Theme.SmartAttendanceStudent" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
-        <item name="colorPrimary">@color/card_dark</item>
+        <item name="colorPrimary">@color/cardview_light_background</item>
     </style>
+    <style name="SpinnerWhiteText" parent="Widget.AppCompat.Spinner">
+    <item name="android:textColor">@android:color/white</item>
+</style>
+
 </resources>

@@ -8,14 +8,13 @@
     android:padding="24dp"
     tools:context=".LoginActivity">
 
-    <!-- GLASS LOGIN CARD -->
     <LinearLayout
         android:id="@+id/loginCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:orientation="vertical"
-        android:background="@drawable/rounded_card"
+        android:background="@drawable/btn_green"
         android:padding="30dp">
 
         <TextView
@@ -34,11 +33,11 @@
             android:id="@+id/etEmail"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:background="@drawable/input_background"
+            android:background="@drawable/btn_green"
             android:hint="Username"
             android:padding="12dp"
-            android:textColor="#000000"
-            android:textColorHint="#666666"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/white"
             android:layout_marginBottom="16dp"/>
 
         <!-- PASSWORD FIELD -->
@@ -46,12 +45,12 @@
             android:id="@+id/etPassword"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:background="@drawable/input_background"
+            android:background="@drawable/btn_green"
             android:hint="Password"
             android:padding="12dp"
             android:inputType="textPassword"
-            android:textColor="#000000"
-            android:textColorHint="#666666"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/white"
             android:layout_marginBottom="20dp"/>
 
         <!-- SIGN IN BUTTON -->
@@ -59,27 +58,33 @@
             android:id="@+id/btnLogin"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:backgroundTint="@null"
-            android:background="@drawable/btn_green"
+            android:background="@drawable/btn_white_rounded"
             android:text="SIGN IN"
-            android:textColor="@android:color/white"
+            android:textColor="@android:color/black"
             android:textAllCaps="false"
             android:textSize="16sp"
             android:layout_marginBottom="16dp"/>
 
+        <!-- SIGN UP BUTTON -->
         <Button
             android:id="@+id/btnSignup"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:background="@drawable/btn_green"
+            android:background="@drawable/btn_white_rounded"
             android:text="SIGN UP"
-            android:textColor="@android:color/white"
+            android:textColor="@android:color/black"
             android:textAllCaps="false"
             android:textSize="16sp"
             android:layout_marginBottom="16dp"/>
 
-        <ProgressBar android:id="@+id/progressBar" style="?android:attr/progressBarStyleLarge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:layout_marginTop="20dp" android:visibility="gone" />
-
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 

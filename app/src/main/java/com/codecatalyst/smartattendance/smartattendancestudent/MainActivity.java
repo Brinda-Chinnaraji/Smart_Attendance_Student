@@ -116,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView overlayMessage;
     private Button btnOpenSettings;
 
+    private Button btnLogout;
+
     // Face verification UI
     private LinearLayout cardFaceVerification;
     private PreviewView previewFace;
@@ -135,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Data
     private String studentId;
+    private String studentEmailId;
     private String lastScannedUUID;
     private String activeSessionUUID;
     private String courseIdMatched;
@@ -161,6 +164,13 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, AttendanceHistoryActivity.class);
             intent.putExtra("STUDENT_ID", studentId);
             startActivity(intent);
+        });
+
+        btnLogout = findViewById(R.id.btnLogout);
+        btnLogout.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
         });
 
         db = FirebaseFirestore.getInstance();
@@ -191,9 +201,15 @@ public class MainActivity extends AppCompatActivity {
         // Student ID
         Intent intent = getIntent();
         studentId = intent.getStringExtra("STUDENT_ID");
+        studentEmailId = intent.getStringExtra("STUDENT_EMAIL");
+
         if (studentId == null || studentId.isEmpty()) {
             studentId = getSharedPreferences("StudentPrefs", MODE_PRIVATE)
                     .getString("STUDENT_ID", null);
+        }
+        if (studentEmailId == null || studentEmailId.isEmpty()) {
+            studentEmailId = getSharedPreferences("StudentPrefs", MODE_PRIVATE)
+                    .getString("STUDENT_EMAIL", null);
         }
         Log.d(TAG, "MainActivity started with studentId = " + studentId);
 
@@ -201,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
         if (!FaceStorage.hasEmbedding(this)) {
             Intent enrollIntent = new Intent(this, FaceEnrollmentActivity.class);
             enrollIntent.putExtra("STUDENT_ID", studentId);
+            enrollIntent.putExtra("STUDENT_EMAIL", studentEmailId);
             startActivity(enrollIntent);
             finish();
             return;
@@ -210,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "No stored embeddings found even though hasEmbedding = true");
             Intent enrollIntent = new Intent(this, FaceEnrollmentActivity.class);
             enrollIntent.putExtra("STUDENT_ID", studentId);
+            enrollIntent.putExtra("STUDENT_EMAIL", studentEmailId);
             startActivity(enrollIntent);
             finish();
             return;

@@ -59,6 +59,7 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
     private Button btnCapture;
     private View faceBorderOverlay;
 
+    private String studentEmailId;
     private FaceDetector faceDetector;
     private FaceNetModel faceNetModel;
     private ExecutorService cameraExecutor;
@@ -96,6 +97,8 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
         faceDetector = FaceDetection.getClient(options);
         cameraExecutor = Executors.newSingleThreadExecutor();
+
+        studentEmailId = getIntent().getStringExtra("STUDENT_EMAIL");
 
         // Initial button text with remaining count
         updateCaptureButtonText();
@@ -214,7 +217,7 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
 
     private void showRedGlow() {
         if (currentAnim == redGlowAnim) return;
-        faceBorderOverlay.setBackgroundResource(R.drawable.anim_red_glow);
+        faceBorderOverlay.setBackgroundResource(R.drawable.circle_border);
         redGlowAnim = (AnimationDrawable) faceBorderOverlay.getBackground();
         redGlowAnim.start();
         currentAnim = redGlowAnim;
@@ -271,7 +274,10 @@ public class FaceEnrollmentActivity extends AppCompatActivity {
             Toast.makeText(this,
                     "✅ Face registered successfully!",
                     Toast.LENGTH_LONG).show();
-
+            getSharedPreferences("EnrolledPrefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("ENROLLED_STUDENT_EMAIL", studentEmailId)
+                    .apply();
             Intent intent = new Intent(FaceEnrollmentActivity.this, MainActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);

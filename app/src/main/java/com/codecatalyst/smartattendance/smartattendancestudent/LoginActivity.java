@@ -1,6 +1,7 @@
 package com.codecatalyst.smartattendance.smartattendancestudent;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +17,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.codecatalyst.smartattendance.smartattendancestudent.storage.FaceStorage;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -25,6 +27,7 @@ public class LoginActivity extends AppCompatActivity {
     private Button btnLogin;
     private Button btnSignup;
     private ProgressBar progressBar;
+    private float[][] storedEmbeddings;
     private FirebaseFirestore db;
 
     @Override
@@ -65,7 +68,15 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(this, "Please fill in both fields", Toast.LENGTH_SHORT).show();
             return;
         }
+        SharedPreferences enrolledPrefs = getSharedPreferences("EnrolledPrefs", MODE_PRIVATE);
+        String enrolledEmail = enrolledPrefs.getString("ENROLLED_STUDENT_EMAIL", null);
 
+        storedEmbeddings = FaceStorage.loadEmbeddings(this);
+        if (storedEmbeddings != null && storedEmbeddings.length != 0 &&
+                enrolledEmail != null && !enrolledEmail.equals(email)) {
+            Toast.makeText(this, "This device is already enrolled with another email, Please contact Admin!", Toast.LENGTH_LONG).show();
+            return;
+        }
         progressBar.setVisibility(View.VISIBLE);
         btnLogin.setEnabled(false);
 

@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // ✅ Stricter threshold for FaceNet distance
-    private static final float FACE_MATCH_THRESHOLD = 0.65f;
+    private static final float FACE_MATCH_THRESHOLD = 0.50f;
 
     // BLE / Firestore
     private BluetoothAdapter bluetoothAdapter;

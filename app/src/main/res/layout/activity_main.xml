@@ -184,6 +184,17 @@
                 android:background="@drawable/btn_green"
                 android:textColor="@color/text_light"
                 android:enabled="false"/>
+
+            <Button
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/btn_white_rounded"
+                android:text="Logout"
+                android:textColor="@android:color/black"
+                android:textAllCaps="false"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
         </LinearLayout>
     </ScrollView>
 

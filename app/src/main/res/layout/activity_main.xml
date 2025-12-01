@@ -189,6 +189,7 @@
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
+                android:layout_marginTop="24dp"
                 android:background="@drawable/btn_white_rounded"
                 android:text="Logout"
                 android:textColor="@android:color/black"
